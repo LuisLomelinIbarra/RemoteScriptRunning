@@ -8,41 +8,34 @@
 import java.io.*;
 import java.lang.*;
 import java.net.*;
+import java.util.concurrent.TimeUnit;
 
 import jdk.net.Sockets;
 
-class RunServer{
-    private static ServerSocket ss;
-    private static Socket s;
-    private static DataInputStream datain;
-    private static DataOutputStream dataout;
-    private static BufferedReader br ;
-    private static String aux;
-    private static String ans;
-    private static boolean isScriptDone = true;
+class RunServer /*implements Runnable*/{
+    
+    
+    private static boolean isFirstRun = true;
     private static Process run = null;
-
-
-    private static Thread t= new Thread(){
-        @Override
-        public void run(){
-            try{
-                do{
-                    aux = datain.readUTF();
-                    System.out.println("Client::> "+aux);
-                    if(aux.equals("run script")){
-                        runSubRutine("script_test.bat");
-                    }
-                    System.out.print(">> ");
-                }while(!ans.equals("stop") && !aux.equals("stop"));
-                System.exit(0);
-            }catch(IOException e){
-                System.out.println("An ioerror ocurrued");
-            }
-            
+    
+    /*public void run(){
+        try{
+            do{
+                aux = datain.readUTF();
+                System.out.println("Client::> "+aux);
+                if(aux.equals("run script")){
+                    runSubRutine("script_test.bat");
+                }
+                System.out.print(">> ");
+            }while(!ans.equals("stop") && !aux.equals("stop"));
+            System.exit(0);
+        }catch(IOException e){
+            System.out.println("An ioerror ocurrued");
         }
-    };
+        
+    }*/
 
+    
     /*private static Thread isScriptAlive = new Thread(){
         @Override
         public void run(){
@@ -55,27 +48,50 @@ class RunServer{
     };*/
 
    public static void main(String args[])throws IOException{
-        System.out.println("Starting Serverside socket...");
-        ss = new ServerSocket(25565);
-        s = ss.accept();
-        datain = new DataInputStream(s.getInputStream());
-        dataout = new DataOutputStream(s.getOutputStream());
-         br = new BufferedReader(new InputStreamReader(System.in));
-        aux = ""; ans ="";
-        System.out.println("Server side is now active!\nSocket is open\n----------------------------");
+        System.out.println("Starting Serverside Client...\n**********************************");
+        //The shared info between all threads are stored in this class
+        ServerThreadData data = new ServerThreadData();
+        //Create the thread that handles inbound information
+        Thread tin = new Thread(new SocketThread(data,1));
+        //Create Thread that handles outbound information 
+        Thread tout = new Thread(new SocketThread(data,2));
+        System.out.println("Server side is now active!\n\n----------------------------");
     
-        t.start();
-        while(!ans.equals("stop") && !aux.equals("stop")){
+        
+        
+        do{
+            data.setupServerSocketService();
+            if(isFirstRun){
+                isFirstRun = false;
+                tin.start();
+                tout.start();
+            }
             
+            while(!data.waitForMain){
+                try{
+                    TimeUnit.MILLISECONDS.sleep(10);
+                }catch(InterruptedException e){
+                    System.out.println("An error ocurred to sleeping main");
+                }
+            }
             
-            System.out.print(">> ");
-            ans = br.readLine();
-            dataout.writeUTF(ans);
-            dataout.flush();
+            System.out.println("Testing if run is alive");
+                if(data.run != null && data.run.isAlive()){
+                    try{
+                        data.run.waitFor();
+                        System.out.println("Script finished");
+                    }catch(InterruptedException e){
+                        System.out.println("Having trubles wating for the script");
+                    }
+            }
+            
+        }while(!data.ans.equals("stop"));
+        try{
+            tin.join();
+            tout.join();
+        }catch(InterruptedException e){
+            System.out.println("Failed to join the communication threads");
         }
-        datain.close();
-        dataout.close();
-        ss.close();
     }
 
 
