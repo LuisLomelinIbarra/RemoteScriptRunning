@@ -34,6 +34,9 @@ class client{
                                 System.out.println("Server::> "+aux); 
                                 System.out.print(">> ");
                             }while(!ans.equals("stop") && !aux.equals("stop"));
+                            datain.close();
+                            dataout.close();
+                            sok.close();
                             System.exit(0);
                         }catch(IOException e){
                             System.out.println("An ioerror ocurrued; cannot connect with server side");
@@ -45,21 +48,23 @@ class client{
                 while(!ans.equals("stop") && !aux.equals("stop")){
                     System.out.print(">> ");
                     ans = br.readLine();
-                    dataout.writeUTF(ans);
-                    dataout.flush();
+                    if(!ans.equals("stop")){
+                        dataout.writeUTF(ans);
+                        dataout.flush();
+                    }
                     
                 }
                 
                 datain.close();
                 dataout.close();
                 sok.close();
-            }catch(Exception e){
+            }catch(IOException e){
                 System.out.println("Connection lost with host trying to reset it\nRetrying.....");
                 
 
             }
             resetCount++;
-        }while(resetCount <= 3);
+        }while(resetCount <= 3&&!ans.equals("stop") && !aux.equals("stop"));
         if(resetCount >= 3){
             System.out.println("\n!!!!!!!!!!!!!!!!!\nFailed to restablish Connection");
         }else{

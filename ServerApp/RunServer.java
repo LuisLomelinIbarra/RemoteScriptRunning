@@ -8,6 +8,9 @@
 import java.io.*;
 import java.lang.*;
 import java.net.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import jdk.net.Sockets;
@@ -52,46 +55,58 @@ class RunServer /*implements Runnable*/{
         //The shared info between all threads are stored in this class
         ServerThreadData data = new ServerThreadData();
         //Create the thread that handles inbound information
-        Thread tin = new Thread(new SocketThread(data,1));
+        //Thread tin = new Thread(new SocketThread(data,1));
         //Create Thread that handles outbound information 
-        Thread tout = new Thread(new SocketThread(data,2));
+        //Thread tout = new Thread(new SocketThread(data,2));
         System.out.println("Server side is now active!\n\n----------------------------");
-    
+        ExecutorService serverThreads = Executors.newFixedThreadPool(5);
         
-        
+        //tout.start();
+        ServerSocket ss;
+        Socket s;
+        serverThreads.execute(new Thread(new SocketThread(data,3)));
         do{
-            data.setupServerSocketService();
-            if(isFirstRun){
-                isFirstRun = false;
-                tin.start();
-                tout.start();
-            }
+            data.killThreads = false;
+            data.ansUpdated = false;
             
-            while(!data.waitForMain){
+            ss = new ServerSocket(25565);
+            //s.setSoTimeout(timeout);
+            s = ss.accept();
+            data.setupServerSocketService(s);
+            serverThreads.execute(new Thread(new SocketThread(data,1)));
+            serverThreads.execute(new Thread(new SocketThread(data,2)));
+
+            data.waitMainFunc();
+            ss.close();
+            data.safeClose();
+            data.ansUpdated = true;
+            
+            
+            System.out.println("Testing if run is alive");
+            if(data.run != null && data.run.isAlive()){
                 try{
-                    TimeUnit.MILLISECONDS.sleep(10);
+                    data.run.waitFor();
+                    System.out.println("Script finished");
                 }catch(InterruptedException e){
-                    System.out.println("An error ocurred to sleeping main");
+                    System.out.println("Having trubles wating for the script");
                 }
             }
             
-            System.out.println("Testing if run is alive");
-                if(data.run != null && data.run.isAlive()){
-                    try{
-                        data.run.waitFor();
-                        System.out.println("Script finished");
-                    }catch(InterruptedException e){
-                        System.out.println("Having trubles wating for the script");
-                    }
-            }
+        }while(!data.stopService);
+        serverThreads.shutdownNow();
+       // try{
+            System.out.println("Starting ending process");
             
-        }while(!data.ans.equals("stop"));
-        try{
-            tin.join();
+            /*tout.interrupt();
+            //tin.interrupt();
             tout.join();
+            System.out.println("Joined tout");
+            tin.interrupt();
+            tin.join();
+            System.out.println("Joined tin");*
         }catch(InterruptedException e){
             System.out.println("Failed to join the communication threads");
-        }
+        }*/
     }
 
 
@@ -105,7 +120,7 @@ class RunServer /*implements Runnable*/{
         try{
             run =  Runtime.getRuntime().exec(cmmd,null,null);
             run.waitFor();
-                System.out.println("--------------\nFinished running the script");
+            System.out.println("--------------\nFinished running the script");
             
         }catch(IOException ex){
             System.out.println("Hubo un error");
@@ -115,5 +130,7 @@ class RunServer /*implements Runnable*/{
         
 
     }
+
+    
 
 }
