@@ -1,19 +1,20 @@
 
 import java.net.*;
 import java.io.*;
-
+import java.util.concurrent.TimeUnit;
 public class SocketThread implements Runnable{
-    
+    public BufferedReader br; 
     ServerThreadData data;
     int type;
     public SocketThread(ServerThreadData newD, int newType){
         this.data = newD;
         this.type = newType;
+        br = new BufferedReader(new InputStreamReader(System.in));
     }
 
     @Override
     public void run(){
-        //try{
+ 
             
                 switch(type){
                     case 1:{
@@ -35,7 +36,7 @@ public class SocketThread implements Runnable{
                                                 data.aux = "";
                                             
                                             
-                                            data.closeConnection();
+                                            data.safeClose();
                                             
                                         }else{
                                             System.out.print(">> ");
@@ -51,46 +52,36 @@ public class SocketThread implements Runnable{
                             
                         break;
                     }
-                    case 2:{
-                        while(!data.killThreads ){
-                        try{
-                                //Read ans
-                                data.readAns();
-                                if(data.dataout != null){
-                                    if(!data.waitForMain && data.dataout != null && !data.killThreads){
-                                        data.dataout.writeUTF(data.ans);
-                                        data.dataout.flush();
-                                        data.ansUpdated =  false;
-                                    }
-                                }
-                                
-                            }catch(IOException e){
-                                System.out.println("error a la hora de leer");
-                            }
-                            
-                        }
-                        System.out.println("Closing reading thread");
-                        
-                        break;
-                    }
+                    
 
-                    case 3:{
+                    case 2:{
                         
                             String readC ="";
                             do{
                                 try{
                                     System.out.print(">> ");
-                                    readC = data.br.readLine();
                                     //System.out.println(data.waitForMain);
-                                    if(!data.killThreads){
-                                        if(readC.equals("stop")){
-                                            System.out.println("Stopping the service");
-                                            data.stopServer();
-                                            System.exit(0);
-                                        }else{
-                                            data.updateAns(readC);
+                                    readC = br.readLine();
+                                    
+
+                                    //System.out.println(data.waitForMain);
+                                    
+                                    if(readC.equals("stop")){
+                                        System.out.println("Stopping the service");
+                                        data.stopServer();
+                                        System.exit(0);
+                                    }else{
+                                        if(data.connected){
+                                            data.dataout.writeUTF(readC);
+                                            data.dataout.flush();
+                                            System.out.println("Sent to client!");
+                                            System.out.println(":::::::: "+readC);
                                         }
+                                        
                                     }
+
+                                    
+                                    
                                 }catch(IOException e){
                                     System.out.println("Error in reading the console");
                                 }
@@ -105,10 +96,7 @@ public class SocketThread implements Runnable{
                 }
             
             
-        /*}catch(IOException e){
-            System.out.println("An ioerror ocurrued");
-            data.killProcess();
-        }*/
+        
         
     }
     
@@ -131,4 +119,5 @@ public class SocketThread implements Runnable{
         
 
     }
+
 }

@@ -14,36 +14,17 @@ public class ServerThreadData {
     public Process run = null;
     public boolean killThreads = false;
     public boolean stopService = false;
-    public boolean ansUpdated = false;
-    public BufferedReader br ;
-    
-    public synchronized void closeConnection(){
-        try{
-            
-                if(datain != null) datain.close();
-                if(dataout != null) dataout.close();
-                if(s != null)s.close();
-                
-                waitForMain = true;
-            
-            System.out.println("Closed the socket succesfully!\n-------------------------\n");
-        }catch(IOException e){
-            System.out.println("Problems closing socket");
-        }
-        while(waitForMain){
-            try{
-                wait();
-            }catch(InterruptedException e){
+    public boolean connected = false;
 
-            }
-        }
-    }
+    
+    
+    
 
     public synchronized void killProcess(){
         System.out.println("Start by killing threads and stopping sockets");
         killThreads = true;
         waitForMain = true;
-        ansUpdated = true;
+        connected = false;
         safeClose();
         notifyAll();
         //System.exit(0);
@@ -55,7 +36,7 @@ public class ServerThreadData {
             if(datain != null) datain.close();
             if(dataout != null) dataout.close();
             if(s != null)s.close();
-            
+            connected = false;
         }catch(IOException e){
             System.out.println("aaaaaaaaa");
         }
@@ -76,22 +57,9 @@ public class ServerThreadData {
         }
     }
 
-    public synchronized void readAns(){
-        while(!ansUpdated){
-            try{
-                wait();
-            }catch(InterruptedException e){
-                System.out.println("An error ocurred to sleeping main");
-            }
-        }
-        
-    }
+    
 
-    public synchronized void updateAns(String readC){
-        ans = readC;
-        ansUpdated = true;
-        notifyAll();
-    }
+    
 
     public synchronized void setupServerSocketService(Socket newSok){
         System.out.println("Starting Serverside socket...");
@@ -105,6 +73,7 @@ public class ServerThreadData {
                     
                     aux = ""; ans ="joined";
                     waitForMain = false;
+                    connected = true;
                     notifyAll();
                 }catch(IOException e){
                     System.out.println("An error has occured when booting server socket");
@@ -115,7 +84,7 @@ public class ServerThreadData {
 
     public ServerThreadData(){
         ans = "";
-        br = new BufferedReader(new InputStreamReader(System.in));
+        
     }
 
 }
