@@ -9,11 +9,21 @@ import javax.swing.JTextField;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.Buffer;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyAdapter;
+
 
 
 public class ClientUI extends JFrame {
@@ -26,7 +36,8 @@ public class ClientUI extends JFrame {
     public GridBagConstraints lim;
     public ExecutorService threads = Executors.newFixedThreadPool(2);
     public ClientThreadData data = new ClientThreadData();
-    
+    public static int port;
+    public static String address;
 
     public ClientUI(){
         Toolkit tool = Toolkit.getDefaultToolkit();
@@ -145,7 +156,9 @@ public class ClientUI extends JFrame {
 
     public static void main(String[] args){
         
-        
+        if(readPortStatusFile()){
+            System.out.println("Found file");
+        }
         ClientUI cui = new ClientUI();
         cui.data.setClientUI(cui.console);
         
@@ -159,7 +172,7 @@ public class ClientUI extends JFrame {
             data.closingConnection();
             
         }
-        if(data.startConnextion("localhost", 25565)){
+        if(data.startConnextion(address, port)){
             writeToConsole("Established a succesful connection\n********************************************************************************************");
             threads.execute(new client(1,this.data));
             
@@ -196,7 +209,41 @@ public class ClientUI extends JFrame {
         repaint();
     }
 
-    
+    public static boolean readPortStatusFile(){
+        boolean foundFile = true;
+        File target = new File("portProperties.txt");
+        try{    
+            if( target.isFile() && target.length() != 0){
+                BufferedReader readFile = new BufferedReader(new FileReader(target));
+                String sPort = readFile.readLine();
+                if(sPort.matches("SERVERPORT=\\d{1,5}")){
+                sPort = sPort.substring(sPort.indexOf('=')+1);
+                
+                    port = Integer.parseInt(sPort);
+                    System.out.println("Setting port to: "+Integer.toString(port));
+                }else{
+                    port = 25565;
+                }
+                sPort = readFile.readLine();
+                if(sPort != null && sPort.matches("SERVERADDRESS=\\S+")){
+                    address = sPort.substring(sPort.indexOf('=')+1);
+                }else{
+                    address = "localhost";
+                }
+            }else{
+                port = 25565;
+                address = "localhost";
+                BufferedWriter ptf = new BufferedWriter(new FileWriter("portProperties.txt",true));
+                ptf.write("SERVERPORT="+Integer.toString(port));
+                ptf.write("\nSERVERADDRESS="+address);
+                ptf.close();
+                foundFile = false;
+            }
+        }catch(IOException e){
+
+        }
+        return foundFile;
+    }
      
 
 }

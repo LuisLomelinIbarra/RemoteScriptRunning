@@ -1,7 +1,10 @@
 import java.io.*;
+import java.nio.Buffer;
 import java.lang.*;
 import java.net.*;
 import jdk.net.Sockets;
+import java.time.format.DateTimeFormatter;  
+import java.time.LocalDateTime;
 
 public class ServerThreadData {
     
@@ -10,12 +13,13 @@ public class ServerThreadData {
     public DataOutputStream dataout;
     public boolean waitForMain = false;
     public  String aux;
-    public  String ans;
+    public  String clientName;
     public Process run = null;
     public boolean killThreads = false;
     public boolean stopService = false;
     public boolean connected = false;
-
+    public String log;
+    public BufferedWriter ptf;
     
     
     
@@ -66,12 +70,12 @@ public class ServerThreadData {
                 try{
                     s = newSok;
                     //ss.setSoTimeout(3000);
-                    
+                    clientName = s.getInetAddress().getHostName();
                     //s.setSoTimeout(3000);
                     datain = new DataInputStream(s.getInputStream());
                     dataout = new DataOutputStream(s.getOutputStream());
                     
-                    aux = ""; ans ="joined";
+                    aux = "";
                     waitForMain = false;
                     connected = true;
                     notifyAll();
@@ -82,8 +86,25 @@ public class ServerThreadData {
                 }
     }
 
-    public ServerThreadData(){
-        ans = "";
+    
+
+    public synchronized void printToFile ( String content) throws IOException{
+        
+        
+        ptf = new BufferedWriter(new FileWriter(log,true));
+        ptf.write("\n"+content);
+        ptf.close();
+        
+    }
+
+    public String getDate(){
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");  
+        LocalDateTime now = LocalDateTime.now();  
+        return dtf.format(now);  
+    }
+
+    public synchronized void setLogFile(String fileName){
+        log = fileName;
         
     }
 

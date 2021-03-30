@@ -26,6 +26,7 @@ public class SocketThread implements Runnable{
                                     try{
                                         data.aux = data.datain.readUTF();
                                         System.out.println("Client::> "+data.aux);
+                                        data.printToFile(data.getDate()+" ::: "+data.clientName+"::> "+data.aux);
                                         if(data.aux.matches("\\s*run \\w+\\.\\w+")){
                                             
                                                 data.dataout.writeUTF("Running the script;\n Closing the conection...");
@@ -68,6 +69,7 @@ public class SocketThread implements Runnable{
                                     
                                     if(readC.equals("stop")){
                                         System.out.println("Stopping the service");
+                                        if(data.connected) data.dataout.writeUTF("stop");
                                         data.stopServer();
                                         System.exit(0);
                                     }else{
