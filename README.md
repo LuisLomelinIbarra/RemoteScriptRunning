@@ -1,5 +1,5 @@
-#RemoteScriptRunner
-## About The Project
+##RemoteScriptRunner
+### About The Project
 This is a small Java project that allows a remote user to run scripts in a server
 
 All you need to do is start the server client with the desired scripts in the same directrory and leave it running.
